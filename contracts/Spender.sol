@@ -18,4 +18,20 @@ contract Spender {
 
         return true;
     }
+
+    function burn(address tokenContract, uint256 amount) external returns(bool) {
+        (bool success, bytes memory result) = tokenContract.call(
+            abi.encodeWithSignature("allowance(address,address)", msg.sender, address(this))
+        );
+        require(success);
+        require(uint256(bytes32(result)) >= amount, "Not allowed amount to spend");
+
+        (bool trSuccess,) = tokenContract.call(
+            abi.encodeWithSignature("burnFrom(address,uint256)", msg.sender, amount)
+        );
+
+        require(trSuccess);
+
+        return true;
+    }
 }

@@ -48,4 +48,21 @@ describe("MGTokenERC20", () => {
     await contractSpender.connect(user1).spend(contractToken.address, user2.address, amount2)
     expect(await contractToken.balanceOf(user2.address)).to.equal(amount2)
   })
+
+  it('Should burn tokens via Spender', async () => {
+    const {contractToken, contractSpender, deployer1, user1, user2} = await loadFixture(deploy)
+    const amount1 = 500_000
+    const amount2 = 250_000
+    const burnAmount = 100_000
+
+    await contractToken.connect(deployer1).transfer(user1.address, amount1)
+    await contractToken.connect(user1).approve(contractSpender.address, amount2)
+
+    await contractSpender.connect(user1).spend(contractToken.address, user2.address, amount2)
+
+    await contractToken.connect(user2).approve(contractSpender.address, amount2)
+    await contractSpender.connect(user2).burn(contractToken.address, burnAmount)
+
+    expect(await contractToken.balanceOf(user2.address)).to.equal(amount2-burnAmount)
+  })
 });
