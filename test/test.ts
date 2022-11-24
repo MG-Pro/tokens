@@ -2,8 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers'
 
-
-describe("MGTokenERC20", () => {
+xdescribe("MGTokenERC20", () => {
   const totalSupply = 1_000_000
 
   async function deploy() {
@@ -66,3 +65,37 @@ describe("MGTokenERC20", () => {
     expect(await contractToken.balanceOf(user2.address)).to.equal(amount2-burnAmount)
   })
 });
+
+describe("MGTokenERC721", () => {
+  async function deploy() {
+    const [deployer1, deployer2, user1, user2] = await ethers.getSigners()
+    const MGTokenERC721 = await ethers.getContractFactory('MGTokenERC721', deployer1)
+    const Spender = await ethers.getContractFactory('Spender', deployer2)
+
+    const contractToken = await MGTokenERC721.deploy()
+    const contractSpender = await Spender.deploy()
+    await contractToken.deployed()
+    await contractSpender.deployed()
+
+    return {contractToken, contractSpender, user1, user2, deployer1, deployer2}
+  }
+
+  it('Should mint NFTs', async () => {
+    const {contractToken, deployer1} = await loadFixture(deploy)
+
+    await contractToken.connect(deployer1).safeMint(deployer1.address)
+    await contractToken.connect(deployer1).safeMint(deployer1.address)
+
+    expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(2)
+  })
+
+  it('Should transfer NFT', async () => {
+    const {contractToken, deployer1, user1} = await loadFixture(deploy)
+
+    await contractToken.connect(deployer1).safeMint(deployer1.address)
+    await contractToken.connect(deployer1).transferFrom(deployer1.address, user1.address, 0)
+
+    expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(0)
+    expect(await contractToken.connect(deployer1).balanceOf(user1.address)).to.equal(1)
+  })
+})
