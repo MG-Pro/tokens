@@ -98,4 +98,17 @@ describe("MGTokenERC721", () => {
     expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(0)
     expect(await contractToken.connect(deployer1).balanceOf(user1.address)).to.equal(1)
   })
+
+  it('Should transfer NFT via spender', async () => {
+    const {contractToken, contractSpender, deployer1, user1} = await loadFixture(deploy)
+
+    await contractToken.connect(deployer1).safeMint(deployer1.address)
+    const tokenId = await contractToken.connect(deployer1).tokenOfOwnerByIndex(deployer1.address, 0)
+    await contractToken.connect(deployer1).approve(contractSpender.address, tokenId)
+
+    await contractSpender.connect(deployer1).spendNFT(contractToken.address, user1.address, tokenId)
+
+    expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(0)
+    expect(await contractToken.connect(deployer1).balanceOf(user1.address)).to.equal(1)
+  })
 })
