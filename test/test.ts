@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers'
 
-xdescribe("MGTokenERC20", () => {
+describe("MGTokenERC20", () => {
   const totalSupply = 1_000_000
 
   async function deploy() {
@@ -111,4 +111,30 @@ describe("MGTokenERC721", () => {
     expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(0)
     expect(await contractToken.connect(deployer1).balanceOf(user1.address)).to.equal(1)
   })
+
+  it('Should burn NFT via spender', async () => {
+    const {contractToken, contractSpender, deployer1, user1} = await loadFixture(deploy)
+
+    await contractToken.connect(deployer1).safeMint(deployer1.address)
+    const tokenId = await contractToken.connect(deployer1).tokenOfOwnerByIndex(deployer1.address, 0)
+    await contractToken.connect(deployer1).approve(contractSpender.address, tokenId)
+
+    expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(1)
+    await contractSpender.connect(deployer1).burnNFT(contractToken.address, tokenId)
+
+    expect(await contractToken.connect(deployer1).balanceOf(deployer1.address)).to.equal(0)
+
+  })
+
+  it('Should set right URL', async () => {
+    const {contractToken, contractSpender, deployer1, user1} = await loadFixture(deploy)
+    const baseURI = '192.168.0.1/'
+
+    await contractToken.connect(deployer1).safeMint(deployer1.address)
+    const tokenId = await contractToken.connect(deployer1).tokenOfOwnerByIndex(deployer1.address, 0)
+
+    expect(await contractToken.tokenURI(tokenId)).to.equal(baseURI + tokenId)
+  })
+
+
 })
