@@ -26,7 +26,9 @@ contract Spender {
     require(success);
     require(uint256(bytes32(result)) >= amount, "Not allowed amount to spend");
 
-    (bool trSuccess, ) = tokenContract.call(abi.encodeWithSignature("burnFrom(address,uint256)", msg.sender, amount));
+    (bool trSuccess, ) = tokenContract.call(
+      abi.encodeWithSignature("burnFrom(address,uint256)", msg.sender, amount)
+    );
 
     require(trSuccess);
 
@@ -34,9 +36,14 @@ contract Spender {
   }
 
   function spendNFT(address tokenContract, address to, uint256 tokenId) external returns (bool) {
-    (bool success, bytes memory result) = tokenContract.call(abi.encodeWithSignature("getApproved(uint256)", tokenId));
+    (bool success, bytes memory result) = tokenContract.call(
+      abi.encodeWithSignature("getApproved(uint256)", tokenId)
+    );
     require(success);
-    require(address(uint160(uint256(bytes32(result)))) == address(this), "Not Approved for spender");
+    require(
+      address(uint160(uint256(bytes32(result)))) == address(this),
+      "Not Approved for spender"
+    );
 
     (bool trSuccess, ) = tokenContract.call(
       abi.encodeWithSignature("safeTransferFrom(address,address,uint256)", msg.sender, to, tokenId)
@@ -48,13 +55,46 @@ contract Spender {
   }
 
   function burnNFT(address tokenContract, uint256 tokenId) external returns (bool) {
-    (bool success, bytes memory result) = tokenContract.call(abi.encodeWithSignature("getApproved(uint256)", tokenId));
+    (bool success, bytes memory result) = tokenContract.call(
+      abi.encodeWithSignature("getApproved(uint256)", tokenId)
+    );
     require(success);
-    require(address(uint160(uint256(bytes32(result)))) == address(this), "Not Approved for spender");
+    require(
+      address(uint160(uint256(bytes32(result)))) == address(this),
+      "Not Approved for spender"
+    );
 
     (bool trSuccess, ) = tokenContract.call(abi.encodeWithSignature("burn(uint256)", tokenId));
 
     require(trSuccess);
+
+    return true;
+  }
+
+  function spendAsOperator(
+    address tokenContract,
+    address from,
+    address to,
+    uint256 amount
+  ) external returns (bool) {
+    (bool success, bytes memory result) = tokenContract.call(
+      abi.encodeWithSignature("isOperatorFor(address,address)", address(this), from)
+    );
+    require(success);
+    require(uint256(bytes32(result)) == 1, "Not operator");
+
+    (bool trSuccess, ) = tokenContract.call(
+      abi.encodeWithSignature(
+        "operatorSend(address,address,uint256,bytes,bytes)",
+        from,
+        to,
+        amount,
+        "",
+        ""
+      )
+    );
+
+    require(trSuccess, "operatorSend error");
 
     return true;
   }
