@@ -1,8 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
 
-contract Spender {
+contract Spender is IERC777Recipient {
+  bytes32 private constant _TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient");
+  IERC1820Registry internal constant _ERC1820_REGISTRY =
+    IERC1820Registry(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+
+  constructor() {
+    _ERC1820_REGISTRY.setInterfaceImplementer(
+      address(this),
+      _TOKENS_RECIPIENT_INTERFACE_HASH,
+      address(this)
+    );
+  }
+
   function spend(address tokenContract, address to, uint256 amount) external returns (bool) {
     (bool success, bytes memory result) = tokenContract.call(
       abi.encodeWithSignature("allowance(address,address)", msg.sender, address(this))
@@ -98,4 +112,30 @@ contract Spender {
 
     return true;
   }
+
+  function sendOwnToken(address tokenContract, address to, uint256 amount) external returns (bool) {
+    (bool success, bytes memory result) = tokenContract.call(
+      abi.encodeWithSignature("balanceOf(address)", address(this))
+    );
+    require(success);
+    console.log(uint256(bytes32(result)));
+    require(uint256(bytes32(result)) <= amount, "Not enough tokens");
+
+    (bool trSuccess, ) = tokenContract.call(
+      abi.encodeWithSignature("send(address,uint256,bytes)", to, amount, "")
+    );
+
+    require(trSuccess, "send error");
+
+    return true;
+  }
+
+  function tokensReceived(
+    address operator,
+    address from,
+    address to,
+    uint256 amount,
+    bytes calldata userData,
+    bytes calldata operatorData
+  ) external {}
 }

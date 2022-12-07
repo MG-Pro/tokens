@@ -213,4 +213,23 @@ describe('MGTokenERC777', () => {
     expect(await contractToken.balanceOf(deployer1.address)).to.equal(initialSupply / 2)
     expect(await contractToken.balanceOf(deployer2.address)).to.equal(initialSupply / 2)
   })
+
+  it('Should send token to contract', async () => {
+    const { contractToken, contractSpender, deployer1 } = await loadFixture(deploy)
+    await contractToken.connect(deployer1).send(contractSpender.address, initialSupply / 2, [])
+    expect(await contractToken.balanceOf(contractSpender.address)).to.equal(initialSupply / 2)
+  })
+
+  it('Should resend token from contract to user', async () => {
+    const { contractToken, contractSpender, deployer1, deployer2, user1 } = await loadFixture(
+      deploy
+    )
+    await contractToken.connect(deployer1).send(contractSpender.address, initialSupply / 2, [])
+
+    await contractSpender
+      .connect(deployer2)
+      .sendOwnToken(contractToken.address, user1.address, initialSupply / 2)
+
+    expect(await contractToken.balanceOf(user1.address)).to.equal(initialSupply / 2)
+  })
 })
