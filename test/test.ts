@@ -150,7 +150,7 @@ xdescribe('MGTokenERC721', () => {
   })
 })
 
-describe('MGTokenERC777', () => {
+xdescribe('MGTokenERC777', () => {
   const initialSupply = 1_000_000
 
   async function deploy() {
@@ -231,5 +231,90 @@ describe('MGTokenERC777', () => {
       .sendOwnToken(contractToken.address, user1.address, initialSupply / 2)
 
     expect(await contractToken.balanceOf(user1.address)).to.equal(initialSupply / 2)
+  })
+})
+
+describe('MGTokenERC1155', () => {
+  const token1Id = 100
+  const token2Id = 200
+  const token3Id = 201
+  const initialSupplies = { [token1Id]: 1_000_000, [token2Id]: 1, [token3Id]: 10 }
+
+  async function deploy() {
+    const [deployer1, deployer2, user1, user2] = await ethers.getSigners()
+    const MGTokenERC1155 = await ethers.getContractFactory('MGTokenERC1155', deployer1)
+    const Spender = await ethers.getContractFactory('Spender', deployer2)
+
+    const contractToken = await MGTokenERC1155.deploy()
+    const contractSpender = await Spender.deploy()
+    await contractToken.deployed()
+    await contractSpender.deployed()
+
+    return {
+      contractToken,
+      contractSpender,
+      user1,
+      user2,
+      deployer1,
+      deployer2,
+    }
+  }
+
+  it('Should mint initialSupply', async () => {
+    const { contractToken, deployer1 } = await loadFixture(deploy)
+
+    await contractToken.connect(deployer1).preMint([token1Id], [initialSupplies[token1Id]])
+
+    await contractToken
+      .connect(deployer1)
+      .mint(deployer1.address, token1Id, initialSupplies[token1Id], [])
+
+    expect(await contractToken.totalSupply(token1Id)).to.equal(initialSupplies[100])
+  })
+
+  it('Should mint batch of initialSupplies', async () => {
+    const { contractToken, deployer1, user1 } = await loadFixture(deploy)
+
+    await contractToken
+      .connect(deployer1)
+      .preMint([token1Id, token2Id], [initialSupplies[token1Id], [initialSupplies[token2Id]]])
+
+    await contractToken
+      .connect(user1)
+      .mintBatch(
+        deployer1.address,
+        [token1Id, token2Id],
+        [initialSupplies[token1Id], initialSupplies[token2Id]],
+        []
+      )
+
+    expect(await contractToken.totalSupply(token1Id)).to.equal(initialSupplies[token1Id])
+    expect(await contractToken.totalSupply(token2Id)).to.equal(initialSupplies[token2Id])
+  })
+
+  it('Should show batch of balances', async () => {
+    const { contractToken, deployer1, user1 } = await loadFixture(deploy)
+
+    await contractToken
+      .connect(deployer1)
+      .preMint([token1Id, token2Id], [initialSupplies[token1Id], [initialSupplies[token2Id]]])
+
+    await contractToken
+      .connect(user1)
+      .mintBatch(
+        deployer1.address,
+        [token1Id, token2Id],
+        [initialSupplies[token1Id], initialSupplies[token2Id]],
+        []
+      )
+
+    const balanceOfBatch = (
+      await contractToken.balanceOfBatch(
+        [deployer1.address, deployer1.address],
+        [token1Id, token2Id]
+      )
+    ).map((v) => v.toNumber())
+
+    expect(balanceOfBatch).includes.members([initialSupplies[token1Id], initialSupplies[token2Id]])
   })
 })
